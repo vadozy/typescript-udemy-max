@@ -1,12 +1,32 @@
-const userName = 'Vadim';
-// userName = '';
+interface Greetable {
+  greet(phrase: string): void;
+}
 
-let age = 50;
+interface Named {
+  readonly name: string;
+  age: number;
+}
 
-age = 49;
+class Person implements Greetable, Named {
 
-var asd = 29;
+  constructor(public name: string, private _age: number = 0) {
+  }
 
-const add = (a: number = 1, b: number) => a + b;
+  get age() {
+    return this._age;
+  }
 
-console.log(add(undefined, 5));
+  greet(s: string) {
+    console.log(s);
+  }
+}
+
+const user1 = {
+  name: 'Vadim',
+  age: 51,
+  greet(s: string) {console.log(`s ${this.name}`)},
+}
+
+const p: Greetable & Named = new Person('Vadim', 51);
+
+// p.name = '';
