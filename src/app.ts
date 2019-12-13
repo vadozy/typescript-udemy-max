@@ -1,10 +1,12 @@
-const button = document.querySelector('button')!;
+const userName = 'Vadim';
+// userName = '';
 
-function clickHandler(message: string) {
-  console.log('Clicked! ' + message);
-}
+let age = 50;
 
-if (button) {
-  button.addEventListener('click', clickHandler.bind(null, 'my message'));
-}
+age = 49;
 
+var asd = 29;
+
+const add = (a: number = 1, b: number) => a + b;
+
+console.log(add(undefined, 5));
