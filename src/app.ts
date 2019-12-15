@@ -1,150 +1,129 @@
-type Admin = {
+// const names: Array<number> = []; // number[]
+
+// names.push(42);
+
+// const promise1: Promise<number> = new Promise((resolve, reject) => resolve(42));
+
+// const promise2 = new Promise((resolve, reject) => {
+//   setTimeout(() => {
+//     resolve('Done!');
+//   }, 2000);
+
+//   setTimeout(() => {
+//     reject(404);
+//   }, 1000);
+// });
+
+// promise1.then(num => console.log(num / 2));
+
+// Creating a generic function
+function merge1(objA: object, objB: object) {
+  return Object.assign(objA, objB);
+}
+
+console.log(merge1({ name: 'Vadim' }, { age: 51 }));
+
+const mergedObj1a = merge1({ name: 'Vadim' }, { age: 51 });
+const mergedObj1b = merge1({ name: 'Vadim' }, { age: 51 }) as {
   name: string;
-  privileges: string[];
+  age: number;
 };
 
-type Employee = {
-  name: string;
-  startDate: Date;
-};
+function merge<T extends object, U extends object>(objA: T, objB: U) {
+  return Object.assign(objA, objB);
+}
+const mergedObj = merge({ name: 'Vadim' }, { age: 51 });
 
-type ElevatedEmployee = Admin & Employee;
+// Constraints
+// const mergedObj2 = merge({name: 'Vadim'}, 50);
+// console.log(mergedObj2);
 
-interface Admin2 {
-  name: string;
-  privileges: string[];
+interface Lengthy {
+  length: number;
 }
 
-interface Employee2 {
-  name: string;
-  startDate: Date;
-}
-
-interface ElevatedEmployee2 extends Admin2, Employee2 {}
-
-type Combinable = number | string;
-type Numeric = number | boolean;
-
-type Universal = Combinable & Numeric;
-
-type AAA = Admin2 & Employee2;
-
-const a: AAA = {
-  name: '',
-  startDate: new Date(),
-  privileges: [],
-};
-
-function add(a: Combinable, b: Combinable) {
-  if (typeof a === 'string' || typeof b === 'string') {
-    return a.toString() + b.toString();
+function countAndDescribe<T extends Lengthy>(element: T): [T, string] {
+  let desc = 'Got no value.';
+  if (element.length === 1) {
+    desc = `Got 1 element.`;
+  } else if (element.length > 1) {
+    desc = `Got ${element.length} elements.`;
   }
-  return a + b;
+  return [element, desc];
 }
 
-type UnknownEmployee = Employee | Admin;
+// The keyof constraint
+function extractAndConvert<T extends object, U extends keyof T>(
+  obj: T,
+  key: U
+) {
+  return 'Value: ' + obj[key];
+}
 
-function printEmployeeInfo(emp: UnknownEmployee) {
-  console.log(emp.name);
-  if ('startDate' in emp) {
-    console.log(emp.startDate);
+extractAndConvert({ name: 'Vadim' }, 'name');
+
+// // //
+// Generic classes
+// // //
+class DataStorage<T> {
+  private data: T[] = [];
+
+  addItem(item: T) {
+    this.data.push(item);
+  }
+
+  removeItem(item: T) {
+    const ind = this.data.indexOf(item);
+    if (ind >= 0) {
+      this.data.splice(ind, 1);
+    }
+  }
+
+  getItems() {
+    return [...this.data];
   }
 }
 
+const textStorage = new DataStorage<string>();
+textStorage.addItem('Vadim');
+
+// problem
+const objStorage = new DataStorage<object>();
+objStorage.addItem({name: 'Vadim'});
+objStorage.addItem({name: 'Paul'});
+objStorage.removeItem({name: 'Paul'});
+console.log(objStorage.getItems());
 // // //
-// Discriminated union
 // // //
-interface Bird {
-  type: 'bird';
-  flyingSpeed: number;
+
+
+// // //
+// Generic utility types Partial and Readonly
+// // //
+interface CourseGoal {
+  title: string;
+  description: string;
+  completeBy: Date;
 }
 
-interface Horse {
-  type: 'horse';
-  runningSpeed: number;
+function createCourseGoal1(title: string, description: string, date: Date): CourseGoal {
+  return {title, description, completeBy: date};
 }
 
-type Animal = Bird | Horse;
 
-function moveAnimal(animal: Animal) {
-  let speed: number;
-
-  switch (animal.type) {
-    case 'bird':
-      speed = animal.flyingSpeed;
-      break;
-    case 'horse':
-      speed = animal.runningSpeed;
-      break;
-  }
-  console.log(`Moving with speed: ${speed}`);
-}
-// // //
-// // //
-
-// // //
-// Type casting
-// // //
-const paragraph = document.querySelector('p');
-
-const paragraph2 = document.getElementById(
-  'message-output'
-) as HTMLParagraphElement; // casting 1
-
-const paragraph3 = <HTMLParagraphElement>(
-  document.getElementById('message-output')
-); // casting 2: may conflict with React
-// // //
-// // //
-
-// // //
-// Index Properties
-// // //
-const userInputElement = document.getElementById('user-input');
-
-if (userInputElement) {
-  (userInputElement as HTMLInputElement).value = 'Hi there';
-}
-interface ErrorContainer {
-  id: string;
-  [prop: string]: string;
+function createCourseGoal2(title: string, description: string, date: Date): CourseGoal {
+  // let courseGoal = {} as CourseGoal;
+  let courseGoal: Partial<CourseGoal> = {};
+  courseGoal.title = title;
+  courseGoal.description = description;
+  courseGoal.completeBy = date;
+  return courseGoal as CourseGoal;
 }
 
-const errorBag: ErrorContainer = {
-  id: "id_1",
-  email: "Not a valid email",
-  userName: "Must start with a capital",
-}
-// // //
-// // //
+const names: Readonly<string[]> = ['Max', 'Anna'];
+// names.push('Manu');
+// names.pop();
 
-// // //
-// Function Overloads
-// // //
-function add2(a: number, b: number): number
-function add2(a: string, b: string): string
-function add2(a: Combinable, b: Combinable): Combinable {
-  if (typeof a === 'string' || typeof b === 'string') {
-    return a.toString() + b.toString();
-  }
-  return a + b;
-}
-// // //
-// // //
 
-// // //
-// Conditional chaining
-// // //
-let o1: any;
-
-console.log(o1?.a?.b); // prints undefined
-// // //
-// // //
-
-// // //
-// Nullish coalescing
-// // //
-const deepNumber = o1?.a?.b?.c ?? 0;
-console.log(deepNumber); // prints 0
 // // //
 // // //
