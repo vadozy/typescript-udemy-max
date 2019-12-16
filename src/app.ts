@@ -1,129 +1,224 @@
-// const names: Array<number> = []; // number[]
-
-// names.push(42);
-
-// const promise1: Promise<number> = new Promise((resolve, reject) => resolve(42));
-
-// const promise2 = new Promise((resolve, reject) => {
-//   setTimeout(() => {
-//     resolve('Done!');
-//   }, 2000);
-
-//   setTimeout(() => {
-//     reject(404);
-//   }, 1000);
-// });
-
-// promise1.then(num => console.log(num / 2));
-
-// Creating a generic function
-function merge1(objA: object, objB: object) {
-  return Object.assign(objA, objB);
+function Logger_v1(constructor: Function) {
+  console.log('Logging...');
+  console.log(constructor);
 }
 
-console.log(merge1({ name: 'Vadim' }, { age: 51 }));
-
-const mergedObj1a = merge1({ name: 'Vadim' }, { age: 51 });
-const mergedObj1b = merge1({ name: 'Vadim' }, { age: 51 }) as {
-  name: string;
-  age: number;
-};
-
-function merge<T extends object, U extends object>(objA: T, objB: U) {
-  return Object.assign(objA, objB);
-}
-const mergedObj = merge({ name: 'Vadim' }, { age: 51 });
-
-// Constraints
-// const mergedObj2 = merge({name: 'Vadim'}, 50);
-// console.log(mergedObj2);
-
-interface Lengthy {
-  length: number;
+function Logger(logString: string) {
+  return function(constructor: Function) {
+    console.log(`${logString}...`);
+    console.log(constructor);
+  };
 }
 
-function countAndDescribe<T extends Lengthy>(element: T): [T, string] {
-  let desc = 'Got no value.';
-  if (element.length === 1) {
-    desc = `Got 1 element.`;
-  } else if (element.length > 1) {
-    desc = `Got ${element.length} elements.`;
+function WithTemplate(template: string, hookId: string) {
+  return function<T extends { new (...args: any[]): { name: string } }>(
+    originalConstructor: T
+  ) {
+    const hookEl = document.getElementById(hookId);
+    if (hookEl) {
+      hookEl.innerHTML = template;
+    }
+    return class extends originalConstructor {
+      constructor(...args: any[]) {
+        super(args);
+      }
+    };
+  };
+}
+
+@Logger('LOGGING - PERSON')
+@WithTemplate('<h1>My Person Object</h1>', 'app')
+class Person {
+  name = 'Vadim';
+
+  constructor() {
+    console.log('Constructor...');
   }
-  return [element, desc];
 }
 
-// The keyof constraint
-function extractAndConvert<T extends object, U extends keyof T>(
-  obj: T,
-  key: U
+const person = new Person();
+
+console.log(person);
+
+// // //
+// // //
+// // //
+
+function Log(target: any, propertyName: string) {
+  console.log('Property decorator!');
+  console.log(target, propertyName);
+}
+
+function Log2(target: any, name: string, descriptor: PropertyDescriptor) {
+  console.log('Accessor decorator!');
+  console.log(target);
+  console.log(name);
+  console.log(descriptor);
+}
+
+function Log3(
+  target: any,
+  name: string | Symbol,
+  descriptor: PropertyDescriptor
 ) {
-  return 'Value: ' + obj[key];
+  console.log('Method decorator!');
+  console.log(target);
+  console.log(name);
+  console.log(descriptor);
 }
 
-extractAndConvert({ name: 'Vadim' }, 'name');
+function Log4(target: any, name: string | Symbol, position: number) {
+  console.log('Parameter decorator!');
+  console.log(target);
+  console.log(name);
+  console.log(position);
+}
 
-// // //
-// Generic classes
-// // //
-class DataStorage<T> {
-  private data: T[] = [];
+class Product {
+  @Log
+  title: string;
+  private _price: number;
 
-  addItem(item: T) {
-    this.data.push(item);
-  }
-
-  removeItem(item: T) {
-    const ind = this.data.indexOf(item);
-    if (ind >= 0) {
-      this.data.splice(ind, 1);
+  @Log2
+  set price(val: number) {
+    if (val > 0) {
+      this._price = val;
+    } else {
+      throw new Error('Invalid price - should be positive!');
     }
   }
 
-  getItems() {
-    return [...this.data];
+  constructor(t: string, p: number) {
+    this.title = t;
+    this._price = p;
+  }
+
+  @Log3
+  getPriceWithTax(@Log4 tax: number) {
+    return this._price * (1 + tax);
   }
 }
 
-const textStorage = new DataStorage<string>();
-textStorage.addItem('Vadim');
+// // //
+// Creating an "Autobind" Decorator
+// // //
+function Autobind(
+  _1: any,
+  _2: string | Symbol,
+  descriptor: PropertyDescriptor
+) {
+  console.log('Method Bind decorator!');
+  const originalMethod = descriptor.value;
+  const newDescriptor: PropertyDescriptor = {
+    configurable: true,
+    enumerable: false,
+    get() {
+      const boundFn = originalMethod.bind(this);
+      return boundFn;
+    },
+  };
+  return newDescriptor;
+}
 
-// problem
-const objStorage = new DataStorage<object>();
-objStorage.addItem({name: 'Vadim'});
-objStorage.addItem({name: 'Paul'});
-objStorage.removeItem({name: 'Paul'});
-console.log(objStorage.getItems());
+class Printer {
+  message = 'This works!';
+
+  @Autobind
+  showMessage(event: MouseEvent) {
+    console.log(`this.message = ${this.message}`);
+    console.log(`event = ${event}`);
+  }
+
+  showMessage2 = (event: MouseEvent) => {
+    console.log(`this.message = ${this.message}`);
+    console.log(`event = ${event}`);
+  };
+}
+
+const printer = new Printer();
+const button = document.getElementById('my-button');
+button?.addEventListener('click', printer.showMessage);
 // // //
 // // //
 
+// // //
+// Validation with Decorators
+// // //
+interface ValidatorConfig {
+  [property: string]: { // class name for which we register some validations
+    [validatableProp: string]: string[] // ['required', 'positive']
+  }
+}
 
-// // //
-// Generic utility types Partial and Readonly
-// // //
-interface CourseGoal {
+const registeredValidators: ValidatorConfig = {};
+
+function Required(target: any, propertyName: string) {
+  // too simplistic, overwrites
+  const currentValidator = registeredValidators[target.constructor.name];
+  registeredValidators[target.constructor.name] = {
+    ...currentValidator,
+    [propertyName]: ['required']
+  };
+}
+
+function PositiveNumber(target: any, propertyName: string) {
+  // too simplistic, overwrites
+  const currentValidator = registeredValidators[target.constructor.name];
+  registeredValidators[target.constructor.name] = {
+    ...currentValidator,
+    [propertyName]: ['positive']
+  };
+}
+
+function validate(obj: any): boolean {
+  const objValidatorConfig = registeredValidators[obj.constructor.name];
+  if (!objValidatorConfig) {
+    return true;
+  }
+  let valid = true;
+  for (const prop in objValidatorConfig) {
+    for (const validator of objValidatorConfig[prop]) {
+      switch (validator) {
+        case 'required':
+          valid = !!obj[prop] && valid;
+          break;
+        case 'positive':
+          valid = obj[prop] > 0 && valid;
+          break;
+      }
+    }
+  }
+  return valid;
+}
+
+class Course {
+  @Required
   title: string;
-  description: string;
-  completeBy: Date;
+
+  @PositiveNumber
+  price: number;
+
+  constructor(t: string, p: number) {
+    this.title = t;
+    this.price = p;
+  }
 }
 
-function createCourseGoal1(title: string, description: string, date: Date): CourseGoal {
-  return {title, description, completeBy: date};
-}
+const courseForm = document.querySelector('form');
+courseForm?.addEventListener('submit', ev => {
+  ev.preventDefault();
+  const titleEl = document.getElementById('title') as HTMLInputElement;
+  const priceEl = document.getElementById('price') as HTMLInputElement;
 
+  const title = titleEl.value;
+  const price = +priceEl.value;
 
-function createCourseGoal2(title: string, description: string, date: Date): CourseGoal {
-  // let courseGoal = {} as CourseGoal;
-  let courseGoal: Partial<CourseGoal> = {};
-  courseGoal.title = title;
-  courseGoal.description = description;
-  courseGoal.completeBy = date;
-  return courseGoal as CourseGoal;
-}
+  const createdCourse = new Course(title, price);
 
-const names: Readonly<string[]> = ['Max', 'Anna'];
-// names.push('Manu');
-// names.pop();
-
-
+  if (!validate(createdCourse))  {
+    alert('Invalid input, please try again!');
+  }
+  console.log(createdCourse);
+});
 // // //
 // // //
