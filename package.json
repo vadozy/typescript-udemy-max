@@ -11,6 +11,7 @@
   "author": "Vadim Storozhuk",
   "license": "ISC",
   "devDependencies": {
-    "lite-server": "^2.5.4"
+    "lite-server": "^2.5.4",
+    "typescript": "^4.0.5"
   }
 }
