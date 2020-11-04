@@ -1,14 +1,47 @@
-console.log('Your code goes here...!');
+interface IPerson {
+  name: string;
+  age: number;
 
-let i = 3;
+  greet(phrase: string): void;
+}
 
-console.log(i);
+type PersonType = {
+  name: string;
+  age: number;
 
-let logged;
+  greet(phrase: string): void;
+};
 
-logged = true;
-console.log(logged);
+class Person implements IPerson {
+  constructor(public name: string, public age: number) {}
 
-logged = 'w';
+  greet(phrase: string) {
+    console.log(`Hello, ${phrase}. Name: ${this.name}, age: ${this.age}`);
+  }
+}
 
-console.log(logged);
+let user1: IPerson;
+
+user1 = {
+  name: 'Vadim',
+  age: 51,
+  greet(phrase) {
+    console.log(phrase);
+  },
+};
+
+user1.greet('Hi there');
+
+const p1 = new Person('Vadim', 51);
+
+console.log(p1);
+
+type AddFn = (a: number, b: number) => number;
+
+let add: AddFn = (a, b) => a + b;
+
+// Interface as function type
+interface AddFn2 {
+  (a: number, b: number): number;
+  (a: string, b: string): string;
+}
