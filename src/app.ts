@@ -1,47 +1,157 @@
-interface IPerson {
+// Intersection types
+type Admin = {
   name: string;
-  age: number;
-
-  greet(phrase: string): void;
-}
-
-type PersonType = {
-  name: string;
-  age: number;
-
-  greet(phrase: string): void;
+  privileges: string[];
 };
 
-class Person implements IPerson {
-  constructor(public name: string, public age: number) {}
+type Employee = {
+  name: string;
+  startDate: Date;
+};
 
-  greet(phrase: string) {
-    console.log(`Hello, ${phrase}. Name: ${this.name}, age: ${this.age}`);
+type ElevatedEmployee = Admin & Employee;
+
+const e1: ElevatedEmployee = {
+  name: 'Vadim',
+  privileges: ['admin'],
+  startDate: new Date(),
+};
+
+// // //
+type Combinable = string | number;
+type Numeric = number | boolean;
+
+type Universal = Combinable & Numeric;
+
+// type guards
+function addOriginal(a: Combinable, b: Combinable) {
+  if (typeof a === 'string' || typeof b === 'string') {
+    return a.toString() + b.toString();
+  }
+  return a + b;
+}
+
+type UnknownEmployee = Employee | Admin;
+
+function printEmployeeInfo(emp: UnknownEmployee) {
+  console.log(`Name: ${emp.name}`);
+  if ('privileges' in emp) {
+    console.log(`Privileges: ${emp.privileges}`);
   }
 }
 
-let user1: IPerson;
+class Car {
+  drive() {
+    console.log('Driving...');
+  }
+}
 
-user1 = {
+// tslint:disable-next-line: max-classes-per-file
+class Truck {
+  drive() {
+    console.log('Driving a trucks...');
+  }
+
+  loadCargo(amount: number) {
+    console.log('Loading cargo...' + amount);
+  }
+}
+
+type Vehicle = Car | Truck;
+
+const v1 = new Car();
+const v2 = new Truck();
+
+function useVehicle(v: Vehicle) {
+  v.drive();
+  if (v instanceof Truck) {
+    v.loadCargo(10);
+  }
+}
+
+useVehicle(v1);
+useVehicle(v2);
+
+// // //
+// Discriminated Union
+
+interface Bird {
+  type: 'bird';
+  flyingSpeed: number;
+}
+
+interface Horse {
+  type: 'horse';
+  runningSpeed: number;
+}
+
+type Animal = Bird | Horse;
+
+function moveAnimal(animal: Animal) {
+  let speed;
+  switch (animal.type) {
+    case 'bird':
+      speed = animal.flyingSpeed;
+      break;
+    case 'horse':
+      speed = animal.runningSpeed;
+      break;
+  }
+  console.log(`Moving with speed: ${speed}`);
+}
+
+moveAnimal({ type: 'bird', flyingSpeed: 10 });
+
+// // //
+// Type casting
+const paragraph = document.querySelector('p');
+const paragraph2 = document.getElementById(
+  'message-output'
+) as HTMLParagraphElement;
+
+const userInput = document.getElementById('user-input') as HTMLInputElement;
+userInput.value = 'assigned user input';
+
+/* possible, but discouraged, because messes up with JSX
+const userInput2 = <HTMLInputElement>document.getElementById('user-input');
+userInput2.value = 'assigned user input 2';
+*/
+
+// // //
+// Index properties
+interface ErrorContainer {
+  id: string;
+  [prop: string]: string;
+}
+
+// // //
+// Function overloads
+function add(a: number, b: number): number;
+function add(a: Combinable, b: Combinable): string;
+function add(a: Combinable, b: Combinable) {
+  if (typeof a === 'string' || typeof b === 'string') {
+    return a.toString() + b.toString();
+  }
+  return a + b;
+}
+
+const result = add(1, 5);
+const result2 = add('1', '5');
+const result3 = add(1, '5');
+
+// // //
+// Optional chaining operator
+const fetchUserData = {
+  id: 'u1',
   name: 'Vadim',
-  age: 51,
-  greet(phrase) {
-    console.log(phrase);
-  },
+  job: { title: 'CEO', description: 'My own company' },
 };
 
-user1.greet('Hi there');
+console.log(fetchUserData.job && fetchUserData.job.title);
+console.log(fetchUserData?.job?.title);
 
-const p1 = new Person('Vadim', 51);
+// // //
+// Nullish coalescing
+let userInput2;
 
-console.log(p1);
-
-type AddFn = (a: number, b: number) => number;
-
-let add: AddFn = (a, b) => a + b;
-
-// Interface as function type
-interface AddFn2 {
-  (a: number, b: number): number;
-  (a: string, b: string): string;
-}
+const storedData = userInput2 ?? 'DEFAULT'; // if null or undefined, set to DEFAULT
