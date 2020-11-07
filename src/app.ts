@@ -1,157 +1,110 @@
-// Intersection types
-type Admin = {
-  name: string;
-  privileges: string[];
-};
+const names = ['Vadim', 'Igor'];
 
-type Employee = {
-  name: string;
-  startDate: Date;
-};
+const promise = new Promise<string>((resolve, reject) => {
+  setTimeout(() => resolve('Done'), 1000);
+});
 
-type ElevatedEmployee = Admin & Employee;
-
-const e1: ElevatedEmployee = {
-  name: 'Vadim',
-  privileges: ['admin'],
-  startDate: new Date(),
-};
+promise.then(data => data.toLowerCase());
 
 // // //
-type Combinable = string | number;
-type Numeric = number | boolean;
-
-type Universal = Combinable & Numeric;
-
-// type guards
-function addOriginal(a: Combinable, b: Combinable) {
-  if (typeof a === 'string' || typeof b === 'string') {
-    return a.toString() + b.toString();
-  }
-  return a + b;
+//
+function mergeNoGeneric(objA: object, objB: object) {
+  return Object.assign(objA, objB);
 }
 
-type UnknownEmployee = Employee | Admin;
+const mergedNoGenericObj = mergeNoGeneric({ name: 'Vadim' }, { age: 52 });
 
-function printEmployeeInfo(emp: UnknownEmployee) {
-  console.log(`Name: ${emp.name}`);
-  if ('privileges' in emp) {
-    console.log(`Privileges: ${emp.privileges}`);
-  }
+function merge<T extends object, U extends object>(objA: T, objB: U) {
+  return Object.assign(objA, objB);
 }
+const mergedObj = merge({ name: 'Vadim' }, { age: 52 });
 
-class Car {
-  drive() {
-    console.log('Driving...');
-  }
-}
-
-// tslint:disable-next-line: max-classes-per-file
-class Truck {
-  drive() {
-    console.log('Driving a trucks...');
-  }
-
-  loadCargo(amount: number) {
-    console.log('Loading cargo...' + amount);
-  }
-}
-
-type Vehicle = Car | Truck;
-
-const v1 = new Car();
-const v2 = new Truck();
-
-function useVehicle(v: Vehicle) {
-  v.drive();
-  if (v instanceof Truck) {
-    v.loadCargo(10);
-  }
-}
-
-useVehicle(v1);
-useVehicle(v2);
+// merge(42, 43);
 
 // // //
-// Discriminated Union
-
-interface Bird {
-  type: 'bird';
-  flyingSpeed: number;
+//
+interface Lengthy {
+  length: number;
 }
 
-interface Horse {
-  type: 'horse';
-  runningSpeed: number;
-}
-
-type Animal = Bird | Horse;
-
-function moveAnimal(animal: Animal) {
-  let speed;
-  switch (animal.type) {
-    case 'bird':
-      speed = animal.flyingSpeed;
-      break;
-    case 'horse':
-      speed = animal.runningSpeed;
-      break;
+function countAndDescribe<T extends Lengthy>(element: T) {
+  let descr = 'Got no value';
+  const n = element.length;
+  if (n === 1) {
+    descr = 'Got 1 element';
+  } else if (n > 1) {
+    descr = `Got ${n} elements`;
   }
-  console.log(`Moving with speed: ${speed}`);
+  return [element, descr];
 }
 
-moveAnimal({ type: 'bird', flyingSpeed: 10 });
+console.log(countAndDescribe('Hi, there'));
 
 // // //
-// Type casting
-const paragraph = document.querySelector('p');
-const paragraph2 = document.getElementById(
-  'message-output'
-) as HTMLParagraphElement;
-
-const userInput = document.getElementById('user-input') as HTMLInputElement;
-userInput.value = 'assigned user input';
-
-/* possible, but discouraged, because messes up with JSX
-const userInput2 = <HTMLInputElement>document.getElementById('user-input');
-userInput2.value = 'assigned user input 2';
-*/
-
-// // //
-// Index properties
-interface ErrorContainer {
-  id: string;
-  [prop: string]: string;
+// keyof constraint
+function extractAndConvert<T extends object, U extends keyof T>(
+  obj: T,
+  key: U
+) {
+  return obj[key];
 }
 
+extractAndConvert({ name: 'Vadim' }, 'name');
+
 // // //
-// Function overloads
-function add(a: number, b: number): number;
-function add(a: Combinable, b: Combinable): string;
-function add(a: Combinable, b: Combinable) {
-  if (typeof a === 'string' || typeof b === 'string') {
-    return a.toString() + b.toString();
+// Generic classes
+class DataStorage<T> {
+  private data: T[] = [];
+
+  addItem(item: T) {
+    this.data.push(item);
   }
-  return a + b;
+
+  removeItem(item: T) {
+    this.data.splice(this.data.indexOf(item), 1);
+  }
+
+  getItems() {
+    return [...this.data];
+  }
 }
 
-const result = add(1, 5);
-const result2 = add('1', '5');
-const result3 = add(1, '5');
+const textStorage = new DataStorage<string>();
+textStorage.addItem('Vadim');
+
+// buggy code, removes -1 item from array
+const objStorage = new DataStorage<object>();
+objStorage.addItem({ name: 'Vadim' });
+objStorage.addItem({ name: 'Igor' });
+// ...
+objStorage.removeItem({ name: 'Vadim' });
+console.log(objStorage.getItems());
+// end of buggy code
 
 // // //
-// Optional chaining operator
-const fetchUserData = {
-  id: 'u1',
-  name: 'Vadim',
-  job: { title: 'CEO', description: 'My own company' },
-};
+// Generic utility types [ builtin types ]
 
-console.log(fetchUserData.job && fetchUserData.job.title);
-console.log(fetchUserData?.job?.title);
+// Partial
+interface CourseGoal {
+  title: string;
+  description: string;
+  completeUntil: Date;
+}
 
-// // //
-// Nullish coalescing
-let userInput2;
+function createCourseGoal(
+  title: string,
+  description: string,
+  date: Date
+): CourseGoal {
+  const courseGoal: Partial<CourseGoal> = {};
+  courseGoal.title = title;
+  courseGoal.description = description;
+  courseGoal.completeUntil = date;
+  return courseGoal as CourseGoal;
+}
 
-const storedData = userInput2 ?? 'DEFAULT'; // if null or undefined, set to DEFAULT
+// ReadOnly
+type CourseGoalRO = Readonly<CourseGoal>;
+
+const namesRO: Readonly<string[]> = ['Vadim', 'Igor'];
+// namesRO[0] = '';
