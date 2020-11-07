@@ -1,110 +1,219 @@
-const names = ['Vadim', 'Igor'];
-
-const promise = new Promise<string>((resolve, reject) => {
-  setTimeout(() => resolve('Done'), 1000);
-});
-
-promise.then(data => data.toLowerCase());
-
-// // //
-//
-function mergeNoGeneric(objA: object, objB: object) {
-  return Object.assign(objA, objB);
+function Logger_01<T extends new (...args: any[]) => {}>(constructor: T) {
+  console.log('Logging...');
+  console.log(constructor);
 }
 
-const mergedNoGenericObj = mergeNoGeneric({ name: 'Vadim' }, { age: 52 });
-
-function merge<T extends object, U extends object>(objA: T, objB: U) {
-  return Object.assign(objA, objB);
-}
-const mergedObj = merge({ name: 'Vadim' }, { age: 52 });
-
-// merge(42, 43);
-
-// // //
-//
-interface Lengthy {
-  length: number;
+function Logger(logString: string) {
+  return <T extends new (...args: any[]) => {}>(constructor: T) => {
+    console.log(logString);
+    console.log(constructor);
+  };
 }
 
-function countAndDescribe<T extends Lengthy>(element: T) {
-  let descr = 'Got no value';
-  const n = element.length;
-  if (n === 1) {
-    descr = 'Got 1 element';
-  } else if (n > 1) {
-    descr = `Got ${n} elements`;
+function WithTemplate(template: string, hookId: string) {
+  function f<T extends new (...args: any[]) => { name: string }>(
+    originalConstructor: T
+  ) {
+    return class extends originalConstructor {
+      constructor(...args: any[]) {
+        super(...args);
+        const hookEl = document.getElementById(hookId);
+        if (hookEl) {
+          hookEl.innerHTML = template;
+          hookEl.querySelector('h1')!.textContent = this.name;
+        }
+      }
+    };
   }
-  return [element, descr];
+  return f;
 }
 
-console.log(countAndDescribe('Hi, there'));
+// tslint:disable-next-line: max-classes-per-file
+@Logger('LOGGING - PERSON')
+@WithTemplate('<h1>My Person Object</h1>', 'app')
+class Person {
+  name = 'Vadim';
+
+  constructor() {
+    console.log('Creating person object...');
+  }
+}
+
+const person = new Person();
+const person2 = new Person();
+const person3 = new Person();
+
+console.log(person);
 
 // // //
-// keyof constraint
-function extractAndConvert<T extends object, U extends keyof T>(
-  obj: T,
-  key: U
+// Another decorator example
+
+// property decorator
+function Log(target: any, propertyName: string | symbol) {
+  console.log('Property decorator!');
+  console.log(target, propertyName);
+}
+
+// accessor decorator
+function Log2(target: any, name: string, descriptor: PropertyDescriptor) {
+  console.log('Accessor decorator!');
+  console.log(target, name, descriptor);
+}
+
+// method decorator
+function Log3(
+  target: any,
+  name: string | symbol,
+  descriptor: PropertyDescriptor
 ) {
-  return obj[key];
+  console.log('Method decorator!');
+  console.log(target, name, descriptor);
 }
 
-extractAndConvert({ name: 'Vadim' }, 'name');
-
-// // //
-// Generic classes
-class DataStorage<T> {
-  private data: T[] = [];
-
-  addItem(item: T) {
-    this.data.push(item);
-  }
-
-  removeItem(item: T) {
-    this.data.splice(this.data.indexOf(item), 1);
-  }
-
-  getItems() {
-    return [...this.data];
-  }
+// parameter decorator
+function Log4(target: any, name: string | symbol, position: number) {
+  console.log('Parameter decorator!');
+  console.log(target, name, position);
 }
 
-const textStorage = new DataStorage<string>();
-textStorage.addItem('Vadim');
-
-// buggy code, removes -1 item from array
-const objStorage = new DataStorage<object>();
-objStorage.addItem({ name: 'Vadim' });
-objStorage.addItem({ name: 'Igor' });
-// ...
-objStorage.removeItem({ name: 'Vadim' });
-console.log(objStorage.getItems());
-// end of buggy code
-
-// // //
-// Generic utility types [ builtin types ]
-
-// Partial
-interface CourseGoal {
+// tslint:disable-next-line: max-classes-per-file
+class Product {
+  @Log
   title: string;
-  description: string;
-  completeUntil: Date;
+  private _price: number;
+
+  @Log2
+  set price(val: number) {
+    if (val > 0) {
+      this._price = val;
+    } else {
+      throw new Error('Invalid price - should be positive!');
+    }
+  }
+
+  constructor(t: string, p: number) {
+    this.title = t;
+    this._price = p;
+  }
+
+  @Log3
+  getPriceWithTax(@Log4 tax: number) {
+    return this._price * (1 + tax);
+  }
 }
 
-function createCourseGoal(
-  title: string,
-  description: string,
-  date: Date
-): CourseGoal {
-  const courseGoal: Partial<CourseGoal> = {};
-  courseGoal.title = title;
-  courseGoal.description = description;
-  courseGoal.completeUntil = date;
-  return courseGoal as CourseGoal;
+// // //
+// Creating an auto-bind decorator
+
+function AutoBind(
+  target: any,
+  methogName: string,
+  propertyDescriptor: PropertyDescriptor
+) {
+  const originalMethod = propertyDescriptor.value;
+  const newDescriptor: PropertyDescriptor = {
+    configurable: true,
+    enumerable: false,
+    get() {
+      const boundFn = originalMethod.bind(this);
+      return boundFn;
+    },
+  };
+  return newDescriptor;
 }
 
-// ReadOnly
-type CourseGoalRO = Readonly<CourseGoal>;
+// tslint:disable-next-line: max-classes-per-file
+class Printer {
+  message = 'This works!';
 
-const namesRO: Readonly<string[]> = ['Vadim', 'Igor'];
-// namesRO[0] = '';
+  @AutoBind
+  showMessage() {
+    console.log(this.message);
+  }
+}
+
+const p = new Printer();
+const button = document.querySelector('button')!;
+button.addEventListener('click', p.showMessage);
+
+// // //
+// Creating a validation decorator
+
+interface ValidatorConfig {
+  [className: string]: {
+    [validatableProp: string]: string[]; // ['required', 'posetive', ...]
+  };
+}
+
+const registeredValidators: ValidatorConfig = {};
+
+function RequiredValue(target: any, propName: string) {
+  addValidationValue(target, propName, 'required');
+}
+
+function PositiveNumber(target: any, propName: string) {
+  addValidationValue(target, propName, 'positive');
+}
+
+function addValidationValue(target: any, propName: string, value: string) {
+  const classNameProps = registeredValidators[target.constructor.name] ?? {};
+  classNameProps[propName] = classNameProps[propName] ?? [];
+  classNameProps[propName].push(value);
+  registeredValidators[target.constructor.name] = classNameProps;
+}
+
+// function add
+
+function validate(obj: any) {
+  const objValidatorConfig = registeredValidators[obj.constructor.name];
+  let isValid = true;
+  if (!objValidatorConfig) {
+    return isValid;
+  }
+  for (const prop in objValidatorConfig) {
+    if (objValidatorConfig.hasOwnProperty(prop)) {
+      for (const validator of objValidatorConfig[prop]) {
+        switch (validator) {
+          case 'required':
+            isValid = isValid && !!obj[prop];
+            break;
+          case 'positive':
+            isValid = isValid && obj[prop] > 0;
+            break;
+        }
+      }
+    }
+  }
+  return isValid;
+}
+
+// tslint:disable-next-line: max-classes-per-file
+class Course {
+  @RequiredValue
+  title: string;
+
+  @PositiveNumber
+  price: number;
+
+  constructor(t: string, pr: number) {
+    this.title = t;
+    this.price = pr;
+  }
+}
+
+const courseForm = document.querySelector('form')!;
+courseForm.addEventListener('submit', ev => {
+  ev.preventDefault();
+  const titleEl = document.getElementById('title') as HTMLInputElement;
+  const priceEl = document.getElementById('price') as HTMLInputElement;
+
+  const title = titleEl.value;
+  const price = +priceEl.value;
+
+  const createdCourse = new Course(title, price);
+
+  if (!validate(createdCourse)) {
+    alert('Invalid input!');
+  }
+  console.log(createdCourse);
+});
