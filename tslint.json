@@ -4,7 +4,10 @@
   "jsRules": {},
   "rules": {
     "no-console": false,
-    "max-classes-per-file": false
+    "max-classes-per-file": false,
+    "no-namespace": false,
+    "no-reference": false,
+    "no-unused-expression": false
   },
   "rulesDirectory": []
 }
