@@ -1,39 +1,47 @@
-import _ from 'lodash';
+import { GOOGLE_API_KEY } from './api-key';
+import axios from 'axios';
 
-console.log(_.shuffle([1, 2, 3]));
+const googleApiUrl = 'https://maps.googleapis.com/maps/api/geocode/json';
 
-declare var MY_GLOBAL: string;
-console.log(MY_GLOBAL);
+const form = document.querySelector('form')!;
+const addresInput = document.getElementById('address') as HTMLInputElement;
 
-// lecture 163
-import { Product } from './product.model';
-const p1 = new Product('A Book', 12.99);
-console.log(p1.getInformation());
+// https://developers.google.com/maps/documentation/javascript/overview
+const script = document.createElement('script');
+script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_API_KEY}`;
+document.body.appendChild(script);
 
-// manual conversion json to typed objects
-const productsFromJson = [
-  { title: 'A Carpet', price: 29.99 },
-  { title: 'A Book', price: 10.99 },
-];
-const loadedProducts = productsFromJson.map(p => new Product(p.title, p.price));
-console.log(loadedProducts);
+// Partial expected shape of the json, for more details see:
+// https://developers.google.com/maps/documentation/geocoding/start
+// https://developers.google.com/maps/documentation/geocoding/overview#StatusCodes
+type GoogleGeocodingResponse = {
+  results: { geometry: { location: { lat: number; lng: number } } }[];
+  status: 'OK' | 'ZERO_RESULTS';
+};
 
-// using class-transformer
-import 'reflect-metadata';
-import { plainToClass } from 'class-transformer';
+function searchAddressHandler(ev: Event) {
+  ev.preventDefault();
+  const userEnteredAddress = addresInput.value;
+  const encodedAddress = encodeURI(userEnteredAddress);
+  axios
+    .get<GoogleGeocodingResponse>(
+      `${googleApiUrl}?address=${encodedAddress}&key=${GOOGLE_API_KEY}`
+    )
+    .then(response => {
+      if (response.data.status !== 'OK') {
+        throw new Error('Could not fetch location');
+      }
+      const coordinates = response.data.results[0].geometry.location;
+      console.log(coordinates);
+      const map = new google.maps.Map(document.getElementById('map')!, {
+        center: coordinates,
+        zoom: 17,
+      });
+      new google.maps.Marker({ position: coordinates, map });
+    })
+    .catch(err => {
+      console.warn(err);
+    });
+}
 
-const loadedProducts2 = plainToClass(Product, productsFromJson);
-console.log(loadedProducts2);
-
-// lecture 164 [ class-validator ]
-import { validate } from 'class-validator';
-const newProd = new Product('', -3);
-console.log(newProd);
-console.log(newProd.getInformation());
-
-validate(newProd).then(errors => {
-  if (errors.length > 0) {
-    console.log('VALIDATION ERRORS');
-    console.log(errors);
-  }
-});
+form.addEventListener('submit', searchAddressHandler);
